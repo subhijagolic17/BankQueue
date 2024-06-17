@@ -1,0 +1,110 @@
+import java.util.*;
+
+class Customer {
+    int arrivalTime;
+    int serviceTime;
+
+    public Customer(int arrivalTime, int serviceTime) {
+        this.arrivalTime = arrivalTime;
+        this.serviceTime = serviceTime;
+    }
+}
+
+class ServiceCounter {
+    Queue<Customer> queue;
+    int totalServiceTime;
+    int customersServed;
+
+    public ServiceCounter() {
+        queue = new LinkedList<>();
+        totalServiceTime = 0;
+        customersServed = 0;
+    }
+
+    public void addCustomer(Customer customer) {
+        queue.add(customer);
+        totalServiceTime += customer.serviceTime;
+        customersServed++;
+    }
+
+    public int getQueueLength() {
+        return queue.size();
+    }
+
+    public int getTotalServiceTime() {
+        return totalServiceTime;
+    }
+}
+
+public class BankQueueSimulation {
+    List<ServiceCounter> counters;
+    int totalTime;
+
+    public BankQueueSimulation(int numCounters) {
+        counters = new ArrayList<>();
+        for (int i = 0; i < numCounters; i++) {
+            counters.add(new ServiceCounter());
+        }
+        totalTime = 0;
+    }
+
+    public void simulate(int numCustomers, int serviceTime, int arrivalRate) {
+        for (int i = 0; i < numCustomers; i++) {
+            Customer customer = new Customer(i * arrivalRate, serviceTime);
+            ServiceCounter counter = getShortestQueueCounter();
+            counter.addCustomer(customer);
+            totalTime = Math.max(totalTime, customer.arrivalTime + counter.getTotalServiceTime());
+        }
+    }
+
+    private ServiceCounter getShortestQueueCounter() {
+        return counters.stream().min(Comparator.comparingInt(ServiceCounter::getQueueLength)).orElse(null);
+    }
+
+    public void printResults() {
+        System.out.println("Total time taken to serve all customers: " + totalTime + " minutes");
+        for (int i = 0; i < counters.size(); i++) {
+            ServiceCounter counter = counters.get(i);
+            System.out.println("Counter " + (i + 1) + " served " + counter.customersServed + " customers");
+            System.out.println("Average service time per customer for counter " + (i + 1) + ": " +
+                               (counter.customersServed > 0 ? counter.getTotalServiceTime() / counter.customersServed : 0) + " minutes");
+        }
+        System.out.println("Average waiting time for customers: " + calculateAverageWaitingTime() + " minutes");
+    }
+
+    private double calculateAverageWaitingTime() {
+        int totalWaitingTime = 0;
+        int totalCustomers = 0;
+
+        for (ServiceCounter counter : counters) {
+            int currentTime = 0;
+            for (Customer customer : counter.queue) {
+                totalWaitingTime += Math.max(0, currentTime - customer.arrivalTime);
+                currentTime = Math.max(currentTime, customer.arrivalTime) + customer.serviceTime;
+                totalCustomers++;
+            }
+        }
+        return totalCustomers > 0 ? (double) totalWaitingTime / totalCustomers : 0;
+    }
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Enter the number of service counters: ");
+        int numCounters = scanner.nextInt();
+
+        System.out.println("Enter the number of customers: ");
+        int numCustomers = scanner.nextInt();
+
+        System.out.println("Enter the time each customer will take at the counter (in minutes): ");
+        int serviceTime = scanner.nextInt();
+
+        System.out.println("Enter the rate of customer arrival at the bank (in minutes): ");
+        int arrivalRate = scanner.nextInt();
+
+        BankQueueSimulation simulation = new BankQueueSimulation(numCounters);
+        simulation.simulate(numCustomers, serviceTime, arrivalRate);
+        simulation.printResults();
+    }
+}
+
